@@ -1,5 +1,5 @@
-[phases.setup]
-nixPkgs = ["php", "phpPackages.composer", "apache", "phpExtensions.mysqli", "phpExtensions.pdo_mysql"]
+[phases.build]
+cmds = ["composer install --no-dev --optimize-autoloader"]
 
-[start]
-cmd = "php -S 0.0.0.0:$PORT"
+[providers.php]
+extensions = ["mysqli", "pdo_mysql", "mbstring", "openssl"]
