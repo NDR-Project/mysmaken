@@ -1,5 +1,5 @@
 [phases.setup]
-nixPkgs = ["php", "phpPackages.composer", "apache"]
+nixPkgs = ["php", "phpPackages.composer", "apache", "phpExtensions.mysqli", "phpExtensions.pdo_mysql"]
 
 [start]
 cmd = "php -S 0.0.0.0:$PORT"
