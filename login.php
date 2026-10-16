@@ -2,20 +2,22 @@
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
-session_start();
 
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 require_once 'config/database.php';
 
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nama = trim($_POST['nama'] ?? '');
+    $nama  = trim($_POST['nama'] ?? '');
     $sandi = $_POST['sandi'] ?? '';
     $token = strtoupper(trim($_POST['token'] ?? ''));
 
     $tokens = [
-        'SISWA123' => 'Siswa',
-        'GURU456' => 'Guru',
+        'SISWA123'   => 'Siswa',
+        'GURU456'    => 'Guru',
         'TEKNISI789' => 'Teknisi'
     ];
 
@@ -24,28 +26,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $role = $tokens[$token];
 
-        // Cari user berdasarkan nama dan role di MySQL
-        $stmt = mysqli_prepare($conn, "SELECT id, nama, sandi, role FROM users WHERE nama = ? AND role = ?");
-        mysqli_stmt_bind_param($stmt, "ss", $nama, $role);
+        // Cari user berdasarkan nama, role, dan token di MySQL
+        $stmt = mysqli_prepare($conn, "SELECT id, nama, role, token FROM users WHERE nama = ? AND role = ? AND token = ?");
+        mysqli_stmt_bind_param($stmt, "sss", $nama, $role, $token);
         mysqli_stmt_execute($stmt);
         $res = mysqli_stmt_get_result($stmt);
 
         if ($user = mysqli_fetch_assoc($res)) {
-            // User ditemukan, verifikasi kata sandi
-            if (password_verify($sandi, $user['sandi'])) {
-                $_SESSION['user_id'] = $user['id'];
-                $_SESSION['nama']    = $user['nama'];
-                $_SESSION['role']    = $user['role'];
-                header('Location: dashboard.php');
-                exit;
-            } else {
-                $error = 'Kata sandi salah untuk akun ' . htmlspecialchars($nama) . ' (' . $role . ').';
-            }
+            // User ditemukan, langsung izinkan login sesuai token yang benar
+            $_SESSION['user_id'] = $user['id'];
+            $_SESSION['nama']    = $user['nama'];
+            $_SESSION['role']    = $user['role'];
+            header('Location: dashboard.php');
+            exit;
         } else {
-            // User belum ada, otomatis registrasi akun baru
-            $hashed = password_hash($sandi, PASSWORD_DEFAULT);
-            $stmt_ins = mysqli_prepare($conn, "INSERT INTO users (nama, sandi, role) VALUES (?, ?, ?)");
-            mysqli_stmt_bind_param($stmt_ins, "sss", $nama, $hashed, $role);
+            // Jika user belum ada di database, otomatis daftarkan akun baru
+            $stmt_ins = mysqli_prepare($conn, "INSERT INTO users (nama, role, token) VALUES (?, ?, ?)");
+            mysqli_stmt_bind_param($stmt_ins, "sss", $nama, $role, $token);
             if (mysqli_stmt_execute($stmt_ins)) {
                 $new_id = mysqli_insert_id($conn);
                 $_SESSION['user_id'] = $new_id;
